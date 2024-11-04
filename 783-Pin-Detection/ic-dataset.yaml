@@ -1,0 +1,10 @@
+train: ic-dataset/images/train
+val: ic-dataset/images/val
+
+nc: 4
+# Classes
+names:
+  0: bent
+  1: okay
+  2: package
+  3: text
