@@ -47,6 +47,30 @@ def relative2xy(sz, pin : dict):
 
     return x1, y1, x2, y2
 
+def xy2relative(sz, x1, y1, x2, y2):
+    a = x1 / sz[0]
+    b = y1 / sz[1]
+    c = x2 / sz[0]
+    d = y2 / sz[1]
+
+    # a, x1 / sz0 = x - w / 2
+    # b, y1 / sz1 = y - h / 2
+    # c, x2 / sz0 = x + w / 2
+    # d, y2 / sz1 = y + h / 2
+
+    # a + c = x - w / 2 + x + w / 2
+    # a + c = 2 * x
+    # x = (a + c) / 2
+
+    # b + d = y - h / 2 + y + h / 2
+    # y = (b + d) / 2
+
+    x = (a + c) / 2
+    y = (b + d) / 2
+    w = (x - a) * 2
+    h = (y - b) * 2
+    return x, y, w, h
+
 def get_boxes(boxes : list, cl : int = 0):
     return [
         x for x in boxes if x['class']==cl
@@ -122,39 +146,10 @@ class DataAugmentator:
         """
         self.images_folder = images_folder
         self.labels_folder = labels_folder
-        self.horizontal_bent_pins = []  # Stores cropped regions of horizontal bent pins as Image.Image
-        self.vertical_bent_pins = []    # Stores cropped regions of vertical bent pins as Image.Image
-        self.process_bent_pins()
 
-    def process_bent_pins(self) -> None:
-        """
-        Processes all images and labels in the specified folders, extracts bent pins, 
-        and categorizes them into horizontal and vertical pins.
-        """
-        image_files = [f for f in os.listdir(self.images_folder) if f.endswith(('.png', '.jpg'))]
-
-        for image_file in image_files:
-            image_path = os.path.join(self.images_folder, image_file)
-            image = Image.open(image_path).convert('RGB')
-            image_width, image_height = image.size
-
-            label_file = os.path.splitext(image_file)[0] + '.txt'
-            label_path = os.path.join(self.labels_folder, label_file)
-
-            boxes = read_boxes(label_path)
-
-            for box in boxes:
-                if box['class'] == 0:  # Bent pins
-                    x1, y1, x2, y2 = relative2xy(image.size, box)
-
-                    cropped_region = image.crop((x1, y1, x2, y2))
-
-                    if (y2 - y1) > (x2 - x1):
-                        self.vertical_bent_pins.append(cropped_region)
-                    else:
-                        self.horizontal_bent_pins.append(cropped_region)
-
-    def add_bent_pins(self, image, boxes: list, n: int, alpha : float = 0.5):
+    def add_bent_pins(self, image, boxes: str | list, n: int,
+                      extend : int | tuple = 30,
+                      angle  : int | tuple = 20):
         """
         Replaces good pins (class 1) in the image with aggregated bent pins.
 
@@ -175,44 +170,73 @@ class DataAugmentator:
             image = Image.fromarray(image)
         elif not isinstance(image, Image.Image):
             raise ValueError("image must be a file path (str), numpy array, or Image.Image.")
+        
+        if isinstance(boxes, str):
+            boxes = read_boxes(boxes)
 
         image = image.copy()
-        good_pins = [x for x in boxes if x['class'] == 1]
+        good_pins = get_boxes(boxes, cl=1)
 
-        for pin in good_pins:
-            pin['orientation'] = 'vertical' if pin['h'] > pin['w'] else 'horizontal'
-
-        pins_to_replace = random.sample(good_pins, min(n, len(good_pins)))
+        pins_to_replace   = random.sample(good_pins, min(n, len(good_pins)))
         updated_good_pins = [pin for pin in good_pins if pin not in pins_to_replace]
-        updated_bad_pins = []
+        updated_bad_pins  = []
 
+        # average color of the image
+        average_color = np.array(image).mean(axis=(0,1))
+        average_color = (int(average_color[0]), int(average_color[1]), int(average_color[2]))
+
+        if isinstance(extend, int):
+            mina = 0
+            maxa = extend
+        else:
+            mina = extend[0]
+            maxa = extend[1]
+
+        if isinstance(angle, int):
+            minb = -angle
+            maxb =  angle
+        else:
+            minb = angle[0]
+            maxb = angle[1]
+
+        package_x1, package_y1, package_x2, package_y2 = relative2xy(image.size, get_boxes(boxes, cl=2)[0])
         for pin in pins_to_replace:
             x1, y1, x2, y2 = relative2xy(image.size, pin)
-
-            if pin['orientation'] == 'vertical':
-                select   = random.randint(0, len(self.vertical_bent_pins)-1)
-                bent_pin = self.vertical_bent_pins[select]
-            else:
-                select   = random.randint(0, len(self.horizontal_bent_pins)-1)
-                bent_pin = self.horizontal_bent_pins[select]
-
-            bent_pin = bent_pin.resize((x2 - x1, y2 - y1))
             orig_pin = image.crop((x1, y1, x2, y2))
 
-            # blend with original pins
-            # Blend the original pin region with the bent pin
-            blended_pin = Image.blend(orig_pin, bent_pin, alpha)
+            # figure orientation of the pin
 
+            # figure out vertical or horizontal pin
+            orientation = 'vertical' if (y2 - y1) > (x2 - x1) else 'horizontal'
+
+            extend_pin  = random.randint(mina, maxa)   # +/- pixels
+            angle       = random.randint(minb, maxb)     # +/- deg
+
+            # if it is a vertical pin, we need to check if the pin to modify is top or bottm
+            if orientation == 'vertical':
+                if (y1 < package_y1):       # above package (so it sticks out from above package)
+                    new_x1, new_y1, new_x2, new_y2 = x1, y1 - extend_pin, x2, y2
+                else:                       # below package (so it sticks out below package)
+                    new_x1, new_y1, new_x2, new_y2 = x1, y1, x2, y2 + extend_pin
+            else:
+                if (x1 < package_x1):       # left of package
+                    new_x1, new_y1, new_x2, new_y2 = x1 - extend_pin, y1, x2, y2
+                else:
+                    new_x1, new_y1, new_x2, new_y2 = x1, y1, x2 + extend_pin, y2
+            
+            bent_pin = orig_pin.resize((new_x2 - new_x1, new_y2 - new_y1))
+            bent_pin = bent_pin.rotate(angle=angle, fillcolor=average_color)
 
             # Replace the good pin with the composite bent pin
-            image.paste(blended_pin, (x1, y1))
+            image.paste(bent_pin, (new_x1, new_y1))
 
+            x, y, w, h =xy2relative(image.size, new_x1, new_y1, new_x2, new_y2)
             updated_bad_pins.append({
                 'class': 0,
-                'x': pin['x'],
-                'y': pin['y'],
-                'w': pin['w'],
-                'h': pin['h']
+                'x': x,
+                'y': y,
+                'w': w,
+                'h': h,
             })
 
         return image, updated_good_pins, updated_bad_pins
