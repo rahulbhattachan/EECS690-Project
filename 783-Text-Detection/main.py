@@ -65,7 +65,7 @@ def adjust_and_apply_dominant_and_rare_colors(image_path, amount=0.5, num_colors
     pixels_colored = np.repeat(pixels, 3, axis=1)  # Duplicate grayscale values to RGB format
     for i, original_color in enumerate(dominant_colors):
         new_color = adjusted_colors[i]
-        mask = np.isclose(pixels.flatten(), original_color[0], atol=15)
+        mask = np.isclose(pixels.flatten(), original_color[0], atol=25)
         pixels_colored[mask] = new_color
 
     # Reshape pixels back to the original image shape and convert to RGB
