@@ -148,7 +148,7 @@ class DataAugmentator:
         self.labels_folder = labels_folder
 
     def add_bent_pins(self, image, boxes: str | list, n: int,
-                      extend : int | tuple = 30,
+                      extend : int | tuple | float = 30,
                       angle  : int | tuple = 20):
         """
         Replaces good pins (class 1) in the image with aggregated bent pins.
@@ -188,9 +188,13 @@ class DataAugmentator:
         if isinstance(extend, int):
             mina = 0
             maxa = extend
-        else:
+        elif isinstance(extend, tuple):
             mina = extend[0]
             maxa = extend[1]
+        elif isinstance(extend, float):
+            pass
+        else:
+            raise ValueError("Extend must be int, tuple, or float")
 
         if isinstance(angle, int):
             minb = -angle
@@ -206,8 +210,26 @@ class DataAugmentator:
 
             # figure orientation of the pin
 
-            # figure out vertical or horizontal pin
-            orientation = 'vertical' if (y2 - y1) > (x2 - x1) else 'horizontal'
+            # if the package is left or right of the package, it is most likely a horizontal pin
+            orientation = None
+            if (x1 < package_x1 or x2 > package_x2):
+                if (y1 > package_y1 or y2 < package_y2):
+                    orientation = 'horizontal'
+                else:
+                    orientation = 'vertical'
+            
+            if (y1 < package_y1 or y2 > package_y2):
+                if (x1 > package_x1 or x2 < package_y2):
+                    orientation = 'vertical'
+                else:
+                    orientation = 'horizontal'
+
+            if orientation is None:
+                orientation = 'vertical' if abs(y2 - y1) > abs(x2 - x1) else 'horizontal'
+
+            if isinstance(extend, float):
+                mina = 0
+                maxa = int((extend - 1.0) * (abs(y2 - y1) if orientation == 'vertical' else abs(x2 - x1)))
 
             extend_pin  = random.randint(mina, maxa)   # +/- pixels
             angle       = random.randint(minb, maxb)     # +/- deg
