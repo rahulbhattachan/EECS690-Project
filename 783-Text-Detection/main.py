@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('TkAgg')  # or 'Qt5Agg' if you have PyQt installed
 from PIL import Image
+from PIL import ImageOps
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
@@ -8,6 +9,55 @@ import matplotlib.colors as mc
 import colorsys
 import sys
 import cv2
+import os
+
+def clear_directory(dir_path):
+    """
+    Clears the contents of a directory.
+
+    Args:
+    dir_path: The path to the directory to be cleared.
+    """
+
+    if not os.path.exists(dir_path):
+        print(f"Directory '{dir_path}' does not exist.")
+        return
+
+    for filename in os.listdir(dir_path):
+        file_path = os.path.join(dir_path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path}. Reason: {e}")
+
+
+def invert_image(img, output_path=None):
+    """
+    Inverts the colors of the input image.
+
+    Parameters:
+    - image_path: Path to the input image.
+    - output_path: Optional path to save the inverted image.
+
+    Displays the inverted image and optionally saves it.
+    """
+    # Open the image
+    
+    # Invert the image
+    inverted_img = ImageOps.invert(img.convert("RGB"))  # Convert to RGB to ensure compatibility with grayscale images
+    
+    # Display the inverted image
+    # plt.imshow(inverted_img)
+    # plt.axis("off")
+    # plt.show()
+
+    # Save the inverted image if an output path is provided
+    if output_path:
+        inverted_img.save(output_path)
+
 def adjust_color(color, amount=0.5, lighten=True):
     """Adjusts the brightness of the color based on whether to lighten or darken."""
     try:
@@ -20,7 +70,7 @@ def adjust_color(color, amount=0.5, lighten=True):
     else:
         return colorsys.hls_to_rgb(c[0], c[1] * (1 - amount), c[2])
 
-def adjust_and_apply_dominant_and_rare_colors(image_path, amount=0.5, num_colors=5, darken_fraction=0.3):
+def adjust_and_apply_dominant_and_rare_colors(image_path, amount=0.5, num_colors=5, darken_fraction=0.3, inverted=False, photo_name=""):
     """
     Loads an image, converts it to grayscale, finds dominant and rare colors,
     lightens the dominant colors, and darkens the rare colors.
@@ -65,35 +115,21 @@ def adjust_and_apply_dominant_and_rare_colors(image_path, amount=0.5, num_colors
     pixels_colored = np.repeat(pixels, 3, axis=1)  # Duplicate grayscale values to RGB format
     for i, original_color in enumerate(dominant_colors):
         new_color = adjusted_colors[i]
-        mask = np.isclose(pixels.flatten(), original_color[0], atol=25)
+        mask = np.isclose(pixels.flatten(), original_color[0], atol=10)
         pixels_colored[mask] = new_color
 
     # Reshape pixels back to the original image shape and convert to RGB
     adjusted_img_np = pixels_colored.reshape(img_np.shape[0], img_np.shape[1], 3)
     adjusted_img = Image.fromarray(adjusted_img_np.astype('uint8'), 'RGB')
-    
-    # adjusted_img.save(f"out/{sys.argv[1]}a-inverted.png")
+    if inverted == True:
+        invert_image(adjusted_img, f"out/{photo_name}_contrast_inverted.png")
+    else:
+        save_path = "_inverted" if inverted == True else "" 
+        adjusted_img.save(f"out/{photo_name}_contrast{save_path}.png")
     # Display the resulting image
-    plt.imshow(adjusted_img)
-    plt.axis("off")
-    plt.show()
-def preprocess_image(image_path):
-    # Load image using OpenCV for better preprocessing options
-    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    #    blurred = cv2.GaussianBlur(img, (5, 5), 0) 
-    # Apply Gaussian Blur to reduce noise
-    average_intensity = np.mean(img) 
-    # Apply adaptive thresholding to highlight text against the background
-    ret, thresholded = cv2.threshold(img, average_intensity, 255, cv2.THRESH_BINARY)    
-    # Use morphological transformations to remove small noise
-    kernel = np.ones((2, 2), np.uint8)
-    processed = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
-    cv2.imwrite(f"out/{sys.argv[1]}b-inverted.png", processed)
-    # Display the result
-    plt.imshow(processed, cmap='gray')
-    plt.axis("off")
-    plt.show()
-    return processed
+    # plt.imshow(adjusted_img)
+    # plt.axis("off")
+    # plt.show()
 
 def find_dominant_colors(processed_img, num_colors=5):
     # Flatten the processed image to a 2D array of pixels
@@ -104,9 +140,28 @@ def find_dominant_colors(processed_img, num_colors=5):
     dominant_colors = kmeans.cluster_centers_
 
     return dominant_colors
+def main():
+    clear_directory("out")
+    if sys.argv[1] == None:
+        print("Please provide an image path")
+        return
+
+    photo_path = sys.argv[1]
+    image = photo_path
+    name = os.path.basename(photo_path)
+    normal = Image.open(photo_path)
+    normal_path = f"out/{name}_original.png"
+    normal.save(normal_path)
+
+
+    grayscale = Image.open(photo_path).convert('L')
+    greyscale_path = f"out/{name}_grayscale.png"
+    grayscale.save(f"out/{name}_grayscale.png")
+
+    adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name=name)
+    adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=True, photo_name=name)
+    adjust_and_apply_dominant_and_rare_colors(greyscale_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=False, photo_name=name)
+    adjust_and_apply_dominant_and_rare_colors(greyscale_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=True, photo_name=name)
 # Example usage
-photo = sys.argv[1]
-image = f"photos/{photo}.png"
-adjust_and_apply_dominant_and_rare_colors(image, amount=0.1, num_colors=3, darken_fraction=0.3)
-processed_img = preprocess_image(image)
-dominant_colors = find_dominant_colors(processed_img, num_colors=3)
+if __name__ == '__main__':
+    main()
