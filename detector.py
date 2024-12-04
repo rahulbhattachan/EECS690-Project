@@ -72,7 +72,8 @@ commands = [
     Commands("-overlay-bent-pin", 1),
     Commands("-overlay-package", 1),
     Commands("-overlay-text", 1),
-    Commands("-apple-ocr", 0)
+    Commands("-apple-ocr", 0),
+    Commands("-chat-gpt", 0)
 ]
 
 def is_a_command(txt)->bool:
@@ -103,17 +104,13 @@ class Detector:
             '-overlay-bent-pin' : 'c0',
             '-overlay-package'  : 'c5',
             '-overlay-text'     : None,
-            '-apple-ocr'        : False
+            '-apple-ocr'        : False,
+            '-chat-gpt'         : False
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
-        import numpy as np
         import cv2
-        import pytesseract
-        from PIL import Image
-        import easyocr
         from apple_ocr.ocr import OCR as AppleOCR
-        from matplotlib import pyplot as plt
         from skimage.measure import block_reduce
 
         class AppleTextVisualization:
@@ -235,22 +232,59 @@ class Detector:
                 bbox = [x_upper, y_upper, x_lower - x_upper + 1, y_lower - y_upper + 1]
                 return bbox
             
-            
-        if ocr_mode == 0:
-            image_np = np.array(image).mean(axis=-1).astype(np.uint8)
-            dataframe, _ = AppleTextVisualization.Image_To_Text(~image_np, rounds=2, minimum_horizontal_size=2048)
-        else:
-            ocr_instance = AppleOCR(image=image)
-            try:
-                dataframe    = ocr_instance.recognize()
-            except:
-                dataframe    = None
-
-        if not (dataframe is None):
-            return dataframe['Content']
-        else:
-            return None
         
+        if self.active_commands['-apple-ocr']:
+            if ocr_mode == 0:
+                image_np = np.array(image).mean(axis=-1).astype(np.uint8)
+                dataframe, _ = AppleTextVisualization.Image_To_Text(~image_np, rounds=2, minimum_horizontal_size=2048)
+            else:
+                ocr_instance = AppleOCR(image=image)
+                try:
+                    dataframe    = ocr_instance.recognize()
+                except:
+                    dataframe    = None
+
+            if not (dataframe is None):
+                return dataframe['Content']
+            else:
+                return None
+            
+        if self.active_commands['-chat-gpt']:
+            from openai import OpenAI
+            import base64
+            from io import BytesIO
+
+            img_type = "JPEG"
+            iii = BytesIO()
+            image.save(iii, format=img_type)
+            img_str = base64.b64encode(iii.getvalue()).decode('utf-8')
+
+            api_key = os.environ.get("OPENAI_API_KEY")
+            client = OpenAI(
+                api_key=api_key,  # This is the default and can be omitted
+            )
+            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text."
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{img_str}"},
+                            },
+                        ],
+                    }
+                ],
+            )
+
+            text = response.choices[0].message.content
+            text = text.split()
+            return text
+
     def add_to_command_tree(self, cmd : str, input : list):
         self.command_tree[cmd] = input
 
@@ -292,7 +326,8 @@ class Detector:
         text = []
 
         # test command using Apple's vision framework for text recognition
-        if self.active_commands['-apple-ocr']:
+        if self.active_commands['-apple-ocr'] or \
+           self.active_commands['-chat-gpt']:
             text = self.runa_ocr(cropped, ocr_mode=0)
             print(text)
             return text
