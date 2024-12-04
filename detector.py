@@ -106,7 +106,8 @@ class Detector:
             '-overlay-package'  : 'c5',
             '-overlay-text'     : None,
             '-apple-ocr'        : False,
-            '-chat-gpt'         : False
+            '-chat-gpt'         : False,
+            '-llama-vision'     : False
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
