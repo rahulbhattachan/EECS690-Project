@@ -15,7 +15,7 @@ class PackageExtractor:
         self.path = path
         self.model = YOLO(self.path)
 
-    def extract_package(self, image_input : str | Image.Image | np.ndarray)->Image.Image:
+    def extract_package(self, image_input : str | Image.Image | np.ndarray):
         if isinstance(image_input, str):
             image = Image.open(image_input).convert('RGB')
         elif isinstance(image_input, np.ndarray):
