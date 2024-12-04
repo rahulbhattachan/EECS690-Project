@@ -340,6 +340,10 @@ class Detector:
         return overlay
     
     def __text_core(self, image : Image.Image, path : str)->list:
+        # no need to run text models
+        if self.active_commands['-no-text']:
+            return []
+        
         pe = PackageExtractor(self.active_commands['-model'])
         cropped, _ = pe.extract_package(image)
         text = []
