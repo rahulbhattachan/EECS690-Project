@@ -73,7 +73,8 @@ commands = [
     Commands("-overlay-package", 1),
     Commands("-overlay-text", 1),
     Commands("-apple-ocr", 0),
-    Commands("-chat-gpt", 0)
+    Commands("-chat-gpt", 0),
+    Commands("-llama-vision", 0)
 ]
 
 def is_a_command(txt)->bool:
@@ -112,6 +113,8 @@ class Detector:
         import cv2
         from apple_ocr.ocr import OCR as AppleOCR
         from skimage.measure import block_reduce
+        import base64
+        from io import BytesIO
 
         class AppleTextVisualization:
             def __init__(self)->None:
@@ -249,15 +252,30 @@ class Detector:
             else:
                 return None
             
+        img_type = "JPEG"
+        iii = BytesIO()
+        image.save(iii, format=img_type)
+        img_str = base64.b64encode(iii.getvalue()).decode('utf-8')
+
+        if self.active_commands['-llama-vision']:
+            from ollama import chat
+            from ollama import ChatResponse
+            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text."
+
+            response: ChatResponse = chat(model='llama3.2-vision', messages=[
+            {
+                'role': 'user',
+                'content': prompt,
+                'images' : [img_str]
+            },
+            ])
+            # or access fields directly from the response object
+            text = response.message.content
+            text = text.split()
+            return text
+
         if self.active_commands['-chat-gpt']:
             from openai import OpenAI
-            import base64
-            from io import BytesIO
-
-            img_type = "JPEG"
-            iii = BytesIO()
-            image.save(iii, format=img_type)
-            img_str = base64.b64encode(iii.getvalue()).decode('utf-8')
 
             api_key = os.environ.get("OPENAI_API_KEY")
             client = OpenAI(
@@ -284,6 +302,7 @@ class Detector:
             text = response.choices[0].message.content
             text = text.split()
             return text
+        return []
 
     def add_to_command_tree(self, cmd : str, input : list):
         self.command_tree[cmd] = input
@@ -327,7 +346,8 @@ class Detector:
 
         # test command using Apple's vision framework for text recognition
         if self.active_commands['-apple-ocr'] or \
-           self.active_commands['-chat-gpt']:
+           self.active_commands['-chat-gpt']  or \
+           self.active_commands['-llama-vision']:
             text = self.runa_ocr(cropped, ocr_mode=0)
             print(text)
             return text
