@@ -16,3 +16,4 @@ Example usage:
     python3 detector.py <path-to-your-image> -show -no-text
     python3 detector.py <path-to-your-image> -save
     python3 detector.py <path-to-your-image> -save -ifile <path-to-output-image-file> -tfile <path-to-output-text-file>
+    python3 detector.py <path-to-your-image> -show -no-text -save -ifile -model <path-to-models> -overlay-package c3 -overlay-good-pin c1
