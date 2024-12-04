@@ -2,6 +2,7 @@ import os
 import numpy as np
 from PIL import Image
 import random
+from matplotlib import pyplot as plt
 
 def combineAllBoxes(bboxes : list):
     new_boxes = []
@@ -181,10 +182,6 @@ class DataAugmentator:
         updated_good_pins = [pin for pin in good_pins if pin not in pins_to_replace]
         updated_bad_pins  = []
 
-        # average color of the image
-        average_color = np.array(image).mean(axis=(0,1))
-        average_color = (int(average_color[0]), int(average_color[1]), int(average_color[2]))
-
         if isinstance(extend, int):
             mina = 0
             maxa = extend
@@ -204,6 +201,7 @@ class DataAugmentator:
             maxb = angle[1]
 
         package_x1, package_y1, package_x2, package_y2 = relative2xy(image.size, get_boxes(boxes, cl=2)[0])
+        package = image.crop((package_x1, package_y1, package_x2, package_y2))
         for pin in pins_to_replace:
             x1, y1, x2, y2 = relative2xy(image.size, pin)
             orig_pin = image.crop((x1, y1, x2, y2))
@@ -231,26 +229,61 @@ class DataAugmentator:
                 mina = 0
                 maxa = int((extend - 1.0) * (abs(y2 - y1) if orientation == 'vertical' else abs(x2 - x1)))
 
-            extend_pin  = random.randint(mina, maxa)   # +/- pixels
-            angle       = random.randint(minb, maxb)     # +/- deg
+            angle      = 0
+            extend_pin = 0
+    
+            while angle == 0 or extend_pin == 0:
+                extend_pin  = random.randint(mina, maxa)   # +/- pixels
+                angle       = random.randint(minb, maxb)     # +/- deg
 
-            # if it is a vertical pin, we need to check if the pin to modify is top or bottm
+            # if it is a vertical pin, we need to check if the pin to modify is top or bottom
+            orig_pin_np = np.array(orig_pin)
+            mode = None
             if orientation == 'vertical':
                 if (y1 < package_y1):       # above package (so it sticks out from above package)
+                    mode = 'top'
                     new_x1, new_y1, new_x2, new_y2 = x1, y1 - extend_pin, x2, y2
+                    sampled_color = orig_pin_np[:5,:,:].mean(axis=(0,1))
                 else:                       # below package (so it sticks out below package)
                     new_x1, new_y1, new_x2, new_y2 = x1, y1, x2, y2 + extend_pin
+                    mode = 'bottom'
+                    sampled_color = orig_pin_np[-5:-1,:,:].mean(axis=(0,1))
             else:
                 if (x1 < package_x1):       # left of package
+                    mode = 'left'
                     new_x1, new_y1, new_x2, new_y2 = x1 - extend_pin, y1, x2, y2
+                    sampled_color = orig_pin_np[:,:5,:].mean(axis=(0,1))
                 else:
+                    mode = 'right'
                     new_x1, new_y1, new_x2, new_y2 = x1, y1, x2 + extend_pin, y2
-            
+                    sampled_color = orig_pin_np[:,-5:-1,:].mean(axis=(0,1))
+
             bent_pin = orig_pin.resize((new_x2 - new_x1, new_y2 - new_y1))
-            bent_pin = bent_pin.rotate(angle=angle, fillcolor=average_color)
+            bent_pin = bent_pin.rotate(angle=angle, fillcolor=(int(sampled_color[0]), int(sampled_color[1]), int(sampled_color[2])))
+
+            reduce = int(0.01 * angle)
+            if reduce <= 0:
+                reduce = 1
+
+            bent_pin_np = np.array(bent_pin)
+
+            if mode == 'top':
+                shrink_x1, shrink_y1, shrink_x2, shrink_y2 = x1, y1 + reduce , x2, y2
+                bent_pin_np=bent_pin_np[0:-reduce,:,:]
+            elif mode == 'bottom':
+                shrink_x1, shrink_y1, shrink_x2, shrink_y2 = x1, y1, x2, y2 - reduce
+                bent_pin_np=bent_pin_np[reduce:-1,:,:]
+            elif mode == 'left':
+                shrink_x1, shrink_y1, shrink_x2, shrink_y2 = x1 + reduce, y1, x2, y2
+                bent_pin_np=bent_pin_np[:,0:-reduce,:]
+            elif mode == 'right':
+                shrink_x1, shrink_y1, shrink_x2, shrink_y2 = x1, y1, x2 - reduce, y2
+                bent_pin_np=bent_pin_np[:,reduce:-1,:]
+            
+            bent_pin = Image.fromarray(bent_pin_np)
 
             # Replace the good pin with the composite bent pin
-            image.paste(bent_pin, (new_x1, new_y1))
+            image.paste(bent_pin, (shrink_x1, shrink_y1))
 
             x, y, w, h =xy2relative(image.size, new_x1, new_y1, new_x2, new_y2)
             updated_bad_pins.append({
@@ -260,5 +293,7 @@ class DataAugmentator:
                 'w': w,
                 'h': h,
             })
+        
+        image.paste(package, (package_x1, package_y1))
 
         return image, updated_good_pins, updated_bad_pins
