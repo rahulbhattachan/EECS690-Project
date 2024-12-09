@@ -40,7 +40,8 @@ def text_recognition(image : Image.Image, path : str)->list | str:
     return python_list
 
 # TESTING
-print(text_recognition(None, '783-Text-Detection/photos/01.png'))
-print(text_recognition(None, '783-Text-Detection/photos/02.png'))
-print(text_recognition(None, '783-Text-Detection/photos/03.png'))
-print(text_recognition(None, '783-Text-Detection/photos/04.png'))
+if __name__ == '__main__':
+    print(text_recognition(None, '783-Text-Detection/photos/01.png'))
+    print(text_recognition(None, '783-Text-Detection/photos/02.png'))
+    print(text_recognition(None, '783-Text-Detection/photos/03.png'))
+    print(text_recognition(None, '783-Text-Detection/photos/04.png'))
