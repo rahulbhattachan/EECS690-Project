@@ -6,7 +6,8 @@ from PackageExtractor import PackageExtractor
 from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
-from TextRecognition import text_recognition
+#from TextRecognition import text_recognition
+from TextRecognition_Ollama import text_recognition
 
 # default paremeters
 default_model = "./783-Pin-Detection/runs/detect/train56/weights/best.pt"
