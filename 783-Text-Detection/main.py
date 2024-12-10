@@ -11,6 +11,8 @@ import sys
 import cv2
 import os
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 def clear_directory(dir_path):
     """
     Clears the contents of a directory.
@@ -122,10 +124,10 @@ def adjust_and_apply_dominant_and_rare_colors(image_path, amount=0.5, num_colors
     adjusted_img_np = pixels_colored.reshape(img_np.shape[0], img_np.shape[1], 3)
     adjusted_img = Image.fromarray(adjusted_img_np.astype('uint8'), 'RGB')
     if inverted == True:
-        invert_image(adjusted_img, f"out/{photo_name}_contrast_inverted.png")
+        invert_image(adjusted_img, f"{script_dir}/out/{photo_name}_contrast_inverted.png")
     else:
         save_path = "_inverted" if inverted == True else "" 
-        adjusted_img.save(f"out/{photo_name}_contrast{save_path}.png")
+        adjusted_img.save(f"{script_dir}/out/{photo_name}_contrast{save_path}.png")
     # Display the resulting image
     # plt.imshow(adjusted_img)
     # plt.axis("off")
@@ -140,23 +142,46 @@ def find_dominant_colors(processed_img, num_colors=5):
     dominant_colors = kmeans.cluster_centers_
 
     return dominant_colors
+
+# def find_text(image: Image.Image, path : string):
+#     name = os.path.basename(path)
+#     normal = Image.open(path)
+#     normal_path = f"out/{name}_original.png"
+#     normal.save(normal_path)
+#
+#
+#     grayscale = Image.open(photo_path).convert('L')
+#     greyscale_path = f"out/{name}_grayscale.png"
+#     grayscale.save(f"out/{name}_grayscale.png")
+#
+#     adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name=name)
+#     adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=True, photo_name=name)
+#     adjust_and_apply_dominant_and_rare_colors(greyscale_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=False, photo_name=name)
+#     adjust_and_apply_dominant_and_rare_colors(greyscale_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=True, photo_name=name)
+#
+
 def main():
-    clear_directory("out")
+    clear_directory(f"{script_dir}/out")
     if sys.argv[1] == None:
         print("Please provide an image path")
         return
+
 
     photo_path = sys.argv[1]
     image = photo_path
     name = os.path.basename(photo_path)
     normal = Image.open(photo_path)
-    normal_path = f"out/{name}_original.png"
+    # os.chdir(script_dir)
+
+    normal_path = f"{script_dir}/out/{name}_original.png"
     normal.save(normal_path)
+
+    
 
 
     grayscale = Image.open(photo_path).convert('L')
-    greyscale_path = f"out/{name}_grayscale.png"
-    grayscale.save(f"out/{name}_grayscale.png")
+    greyscale_path = f"{script_dir}/out/{name}_grayscale.png"
+    grayscale.save(greyscale_path)
 
     adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name=name)
     adjust_and_apply_dominant_and_rare_colors(normal_path, amount=0.3, num_colors=2, darken_fraction=0.3, inverted=True, photo_name=name)

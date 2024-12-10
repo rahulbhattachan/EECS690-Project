@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "dotenv": "^16.4.6"
+    "dotenv": "^16.4.7",
+    "nvm": "^0.0.4"
   }
 }

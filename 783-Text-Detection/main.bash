@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <photo_path> <output_directory> <typescript_program>"
+if [ "$#" -ne 5 ]; then
+    echo "Usage: $0 <photo_path> <output_directory> <typescript_program> <python_image_processor_program> <python_analyzer_program>"
     exit 1
 fi
 
@@ -10,6 +10,8 @@ fi
 photo_path="$1"
 output_directory="$2"
 typescript_program="$3"
+python_program="$4"
+analyzer_program="$5"
 
 # Ensure the output directory exists
 if [ ! -d "$output_directory" ]; then
@@ -18,7 +20,7 @@ if [ ! -d "$output_directory" ]; then
 fi
 
 # Run the Python program
-python3 main.py "$photo_path"
+python3 $python_program "$photo_path"
 
 # Check if Python program succeeded
 if [ $? -ne 0 ]; then
@@ -45,7 +47,7 @@ for file in "$output_directory"/*; do
         if [ $? -ne 0 ]; then
             echo "Error: TypeScript program failed to send file $file."
         else
-            echo "Successfully processed file: $file"
+            # echo "Successfully processed file: $file"
             # Append the output to the output file
             echo "$output" >> "$output_file"
 			echo "---" >> "$output_file"
@@ -54,5 +56,5 @@ for file in "$output_directory"/*; do
 done
 
 # Run analysis on the output file
-python3 analyze_outputs.py "$output_file"
+python3 $analyzer_program "$output_file"
 

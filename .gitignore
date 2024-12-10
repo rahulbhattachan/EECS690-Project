@@ -1,4 +1,15 @@
-
+.gitignore
 783-Pin-Detection/runs/detect/train38/weights/best.pt
 783-Pin-Detection/runs/detect/train38/weights/last.pt
 783-Pin-Detection/yolo11x.pt
+pyenv*
+.DS_Store 
+.env 
+.git/
+.gitignore 
+lib64
+.python-version
+pyvenv.cfg
+share/
+bin/
+783-Text-Detection/node_modules/
