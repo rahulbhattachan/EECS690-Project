@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 #from TextRecognition import text_recognition
 from TextRecognition_Ollama import text_recognition
+from time import time
 
 # default paremeters
 default_model = "./783-Pin-Detection/runs/detect/train56/weights/best.pt"
@@ -113,11 +114,12 @@ class Detector:
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
         import cv2
-        from apple_ocr.ocr import OCR as AppleOCR
         from skimage.measure import block_reduce
         import base64
         from io import BytesIO
 
+        if self.active_commands['-apple-ocr']:
+            from apple_ocr.ocr import OCR as AppleOCR
         class AppleTextVisualization:
             def __init__(self)->None:
                 pass
@@ -421,11 +423,14 @@ class Detector:
             self.active_commands['-show'] = True
 
     def execute(self, path : str):
+        t0 = time()
         self.parser()
 
         image = Image.open(path)
         overlay = self.__bb_core(image)
         text    = self.__text_core(image, path)
+        t1 = time()
+        print(f'### detector.py: It took {t1 - t0} seconds to execute!')
 
         self.viewer(overlay, path, text)
         self.saver (overlay, text, self.active_commands['-ifile'], self.active_commands['-tfile'])
