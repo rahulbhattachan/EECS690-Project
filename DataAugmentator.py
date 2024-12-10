@@ -150,7 +150,10 @@ class DataAugmentator:
 
     def add_bent_pins(self, image, boxes: str | list, n: int,
                       extend : int | tuple | float = 30,
-                      angle  : int | tuple = 20):
+                      angle  : int | tuple = 20,
+                      cls_in : int = 1,
+                      cls_out : int = 0,
+                      package_boxes = None):
         """
         Replaces good pins (class 1) in the image with aggregated bent pins.
 
@@ -176,11 +179,11 @@ class DataAugmentator:
             boxes = read_boxes(boxes)
 
         image = image.copy()
-        good_pins = get_boxes(boxes, cl=1)
+        class_in_pins = get_boxes(boxes, cl=cls_in)
 
-        pins_to_replace   = random.sample(good_pins, min(n, len(good_pins)))
-        updated_good_pins = [pin for pin in good_pins if pin not in pins_to_replace]
-        updated_bad_pins  = []
+        pins_to_replace   = random.sample(class_in_pins, min(n, len(class_in_pins)))
+        updated_class_in_pins = [pin for pin in class_in_pins if pin not in pins_to_replace]
+        updated_class_out_pins  = []
 
         if isinstance(extend, int):
             mina = 0
@@ -200,7 +203,7 @@ class DataAugmentator:
             minb = angle[0]
             maxb = angle[1]
 
-        package_x1, package_y1, package_x2, package_y2 = relative2xy(image.size, get_boxes(boxes, cl=2)[0])
+        package_x1, package_y1, package_x2, package_y2 = relative2xy(image.size, get_boxes(boxes if package_boxes == None else package_boxes, cl=2)[0])
         package = image.crop((package_x1, package_y1, package_x2, package_y2))
         for pin in pins_to_replace:
             x1, y1, x2, y2 = relative2xy(image.size, pin)
@@ -286,8 +289,8 @@ class DataAugmentator:
             image.paste(bent_pin, (shrink_x1, shrink_y1))
 
             x, y, w, h =xy2relative(image.size, new_x1, new_y1, new_x2, new_y2)
-            updated_bad_pins.append({
-                'class': 0,
+            updated_class_out_pins.append({
+                'class': cls_out,
                 'x': x,
                 'y': y,
                 'w': w,
@@ -296,4 +299,4 @@ class DataAugmentator:
         
         image.paste(package, (package_x1, package_y1))
 
-        return image, updated_good_pins, updated_bad_pins
+        return image, updated_class_in_pins, updated_class_out_pins

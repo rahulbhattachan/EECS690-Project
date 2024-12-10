@@ -12,7 +12,7 @@ from time import time
 
 # default paremeters
 default_model = "./783-Pin-Detection/runs/detect/train56/weights/best.pt"
-
+#default_model = './783-Pin-Detection/runs/detect/train64/weights/best.pt'
 def help():
     print("python3 detector.py <filename> <args>\n"
           "  Available arguments:\n"
@@ -21,6 +21,7 @@ def help():
           "    -tfile <filename>              : Saves the text output in plaintext to the filename given\n"
           "    -show                          : Shows the output as a pyplot\n"
           "    -model <model>                 : Runs a different model to the default\n"
+          "    -model-n <number>              : Runs a different model\n"
           "    -no-text                       : Returns no text\n"
           "    -no-image                      : Returns no image\n"
           "    -overlay-good-pin <color code> : Overlays good pins with some color\n"
@@ -76,7 +77,9 @@ commands = [
     Commands("-overlay-text", 1),
     Commands("-apple-ocr", 0),
     Commands("-chat-gpt", 0),
-    Commands("-llama-vision", 0)
+    Commands("-llama-vision", 0),
+    Commands("-mode-1", 0),
+    Commands("-model-n", 1)
 ]
 
 def is_a_command(txt)->bool:
@@ -109,7 +112,9 @@ class Detector:
             '-overlay-text'     : None,
             '-apple-ocr'        : False,
             '-chat-gpt'         : False,
-            '-llama-vision'     : False
+            '-llama-vision'     : False,
+            '-mode-1'           : False,
+            '-model-n'          : None
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
@@ -320,30 +325,62 @@ class Detector:
         image = image.copy()
 
         # start of model
-        bb = BoundingBox(self.active_commands['-model'])
+        if self.active_commands["-mode-1"]:
+            bb = BoundingBox('./783-Pin-Detection/runs/detect/train61/weights/best.pt')
 
-        # compute which cl to use
-        cls = []
-        ccs = []
-        if not (self.active_commands['-overlay-bent-pin'] is None):
-            cls.append(0)
-            ccs.append(colors[self.active_commands['-overlay-bent-pin']])
+            cls = []
+            ccs = []
+            if not (self.active_commands['-overlay-bent-pin'] is None):
+                [cls.append(i) for i in range(4,8)]
+                ccs.append(colors[self.active_commands['-overlay-bent-pin']])
 
-        if not (self.active_commands['-overlay-good-pin'] is None):
-            cls.append(1)
-            ccs.append(colors[self.active_commands['-overlay-good-pin']])
+            if not (self.active_commands['-overlay-good-pin'] is None):
+                [cls.append(i) for i in range(4)]
+                ccs.append(colors[self.active_commands['-overlay-good-pin']])
 
-        if not (self.active_commands['-overlay-package'] is None):
-            cls.append(2)
-            ccs.append(colors[self.active_commands['-overlay-package']])
+            overlay = bb.overlay(image, 10, cls, ccs)
 
-        if not (self.active_commands['-overlay-text'] is None):
-            cls.append(3)
-            ccs.append(colors[self.active_commands['-overlay-text']])
+            bb = BoundingBox(self.active_commands['-model'])
 
-        overlay = bb.overlay(image, 10, cls, ccs)
+            cls = []
+            ccs = []
+            if not (self.active_commands['-overlay-package'] is None):
+                cls.append(2)
+                ccs.append(colors[self.active_commands['-overlay-package']])
 
-        return overlay
+            if not (self.active_commands['-overlay-text'] is None):
+                cls.append(3)
+                ccs.append(colors[self.active_commands['-overlay-text']])
+
+            overlay = bb.overlay(overlay, 10, cls, ccs)
+
+            return overlay
+
+        else:
+            bb = BoundingBox(self.active_commands['-model'])
+
+            # compute which cl to use
+            cls = []
+            ccs = []
+            if not (self.active_commands['-overlay-bent-pin'] is None):
+                cls.append(0)
+                ccs.append(colors[self.active_commands['-overlay-bent-pin']])
+
+            if not (self.active_commands['-overlay-good-pin'] is None):
+                cls.append(1)
+                ccs.append(colors[self.active_commands['-overlay-good-pin']])
+
+            if not (self.active_commands['-overlay-package'] is None):
+                cls.append(2)
+                ccs.append(colors[self.active_commands['-overlay-package']])
+
+            if not (self.active_commands['-overlay-text'] is None):
+                cls.append(3)
+                ccs.append(colors[self.active_commands['-overlay-text']])
+
+            overlay = bb.overlay(image, 10, cls, ccs)
+
+            return overlay
     
     def __text_core(self, image : Image.Image, path : str)->list:
         # no need to run text models
@@ -427,6 +464,9 @@ class Detector:
     def execute(self, path : str):
         t0 = time()
         self.parser()
+
+        if self.active_commands['-model-n'] is not None:
+            self.active_commands['-model'] = f'./783-Pin-Detection/runs/detect/train{self.active_commands['-model-n']}/weights/best.pt'
 
         image = Image.open(path)
         overlay = self.__bb_core(image)

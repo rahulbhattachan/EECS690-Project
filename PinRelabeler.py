@@ -148,7 +148,7 @@ class PinRelabeler:
         self.images_folder = images_folder
         self.labels_folder = labels_folder
 
-    def relabel_pins( self, image, boxes: str | list):
+    def relabel_pins( self, image, boxes: str | list, package_boxes = None):
         """
         Replaces good pins (class 1) in the image with aggregated bent pins.
 
