@@ -264,7 +264,7 @@ class Detector:
         if self.active_commands['-llama-vision']:
             from ollama import chat
             from ollama import ChatResponse
-            prompt = "You are an OCR agent. Return only the text in the image."
+            prompt = "You are an OCR agent. Return ONLY text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
 
             response: ChatResponse = chat(model='llama3.2-vision', messages=[
             {
@@ -275,7 +275,9 @@ class Detector:
             ])
             # or access fields directly from the response object
             text = response.message.content
-            text = text.split()
+            if text.find('NOTEXT') != -1:
+                return []
+
             return text
 
         if self.active_commands['-chat-gpt']:
