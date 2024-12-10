@@ -285,7 +285,7 @@ class Detector:
             client = OpenAI(
                 api_key=api_key,  # This is the default and can be omitted
             )
-            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text."
+            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text. If there is no text, return nothing"
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",

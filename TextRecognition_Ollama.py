@@ -16,7 +16,7 @@ def text_recognition(img : Image.Image, path : str):
     from ollama import ChatResponse
     from io import BytesIO
     import base64
-    prompt = "Read all text on the image. Output only the text on the image and nothing else."
+    prompt = "Read all text on the image. If there is no text, return NOTEXT"
 
     img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
 
