@@ -10,13 +10,14 @@ import colorsys
 import sys
 import cv2
 import os
+import re
 
 def text_recognition(img : Image.Image, path : str):
     from ollama import chat
     from ollama import ChatResponse
     from io import BytesIO
     import base64
-    prompt = "Read all text on the image. If there is no text, return NOTEXT"
+    prompt = "You are an OCR agent. Return the text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
 
     img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
 
@@ -34,7 +35,9 @@ def text_recognition(img : Image.Image, path : str):
     ])
     # or access fields directly from the response object
     text = response.message.content
-    text = text.split()
+    if text.find('NOTEXT') != -1:
+        return []
+
     return text
 
 def invert_image(img, output_path=None):

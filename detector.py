@@ -264,7 +264,7 @@ class Detector:
         if self.active_commands['-llama-vision']:
             from ollama import chat
             from ollama import ChatResponse
-            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text."
+            prompt = "You are an OCR agent. Return only the text in the image."
 
             response: ChatResponse = chat(model='llama3.2-vision', messages=[
             {
