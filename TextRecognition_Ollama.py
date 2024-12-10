@@ -17,7 +17,7 @@ def text_recognition(img : Image.Image, path : str):
     from ollama import ChatResponse
     from io import BytesIO
     import base64
-    prompt = "You are an OCR agent. Return the text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
+    prompt = "You are an OCR agent. Return ONLY text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
 
     img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
 
