@@ -1,0 +1,14 @@
+train: ic-dir-dataset/images/train
+val: ic-dir-dataset/images/val
+
+nc: 8
+# Classes
+names:
+  0: left_good
+  1: right_good
+  2: up_good
+  3: down_good
+  4: left_bent
+  5: right_bent
+  6: up_bent
+  7: down_bent
