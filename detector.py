@@ -378,7 +378,9 @@ class Detector:
                 cls.append(3)
                 ccs.append(colors[self.active_commands['-overlay-text']])
 
-            overlay = bb.overlay(image, 10, cls, ccs)
+            overlay = bb.overlay(image, 10, cls, ccs, ov_det=[
+                0
+            ])
 
             return overlay
     
