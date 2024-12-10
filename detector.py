@@ -466,7 +466,7 @@ class Detector:
         self.parser()
 
         if self.active_commands['-model-n'] is not None:
-            self.active_commands['-model'] = f'./783-Pin-Detection/runs/detect/train{self.active_commands['-model-n']}/weights/best.pt'
+            self.active_commands['-model'] = f'./783-Pin-Detection/runs/detect/train{self.active_commands["-model-n"]}/weights/best.pt'
 
         image = Image.open(path)
         overlay = self.__bb_core(image)
