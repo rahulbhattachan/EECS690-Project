@@ -4,7 +4,6 @@
 783-Pin-Detection/yolo11x.pt
 pyenv*
 .DS_Store 
-.env 
 .git/
 .gitignore 
 lib64
