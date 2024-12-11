@@ -6,6 +6,7 @@ from PackageExtractor import PackageExtractor
 from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
+from TextEnhance import TextEnhancement
 from TextRecognition import text_recognition
 #from TextRecognition_Ollama import text_recognition, text_recognition_easy_ocr
 from time import time
@@ -310,9 +311,18 @@ class Detector:
            self.active_commands['-llama-vision']:
             text = self.runa_ocr(cropped, ocr_mode=0)
             return text
+        
+        # IMAGE SHOULD BE APPLIED TO IMAGE
+        # OLD PATH `PATH` SHOULD ONLY BE USED FOR REFERENCE IF NECESSARY
+        new_path = './temp/output.png'
+        if self.active_commands['-enhance']:
+            enhance_cropped = TextEnhancement(cropped, 1024)
+            enhance_cropped.save(new_path)
+        else:
+            cropped.save(new_path)
 
         # apply text recognition here
-        text = text_recognition(cropped, path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
+        text = text_recognition(cropped, new_path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
 
         return text
 
