@@ -6,8 +6,8 @@ from PackageExtractor import PackageExtractor
 from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
-#from TextRecognition import text_recognition
-from TextRecognition_Ollama import text_recognition, text_recognition_easy_ocr
+from TextRecognition import text_recognition
+#from TextRecognition_Ollama import text_recognition, text_recognition_easy_ocr
 from time import time
 
 # default paremeters
@@ -312,7 +312,7 @@ class Detector:
             return text
 
         # apply text recognition here
-        text = text_recognition_easy_ocr(cropped, path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
+        text = text_recognition(cropped, path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
 
         return text
 
