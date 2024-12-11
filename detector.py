@@ -124,139 +124,15 @@ class Detector:
         from skimage.measure import block_reduce
         import base64
         from io import BytesIO
-
-        if self.active_commands['-apple-ocr']:
-            from apple_ocr.ocr import OCR as AppleOCR
-        class AppleTextVisualization:
-            def __init__(self)->None:
-                pass
-
-            @staticmethod
-            def Image_To_Text(img : str | np.ndarray, minimum_horizontal_size : int = 1600, rounds : int = 4, kernel_size : int | float = 64):
-                if isinstance(img, str):
-                    img = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
-                if isinstance(img, Image.Image):
-                    img = np.array(img.convert('L'))
-
-                if img.shape[0] < minimum_horizontal_size:
-                    ratio = minimum_horizontal_size/img.shape[0]
-                    img   = cv2.resize(img.astype(np.float32), dsize=(int(img.shape[1]*ratio), minimum_horizontal_size)).astype(np.uint8)
-
-                ii = img
-                iii = AppleTextVisualization.enhance_text_for_ocr(ii, rounds)
-
-                ocr_instance = AppleOCR(image=Image.fromarray(iii))
-                try:
-                    dataframe    = ocr_instance.recognize()
-                except:
-                    dataframe    = None
-                return dataframe, iii
-
-            @staticmethod
-            def isolate_ic(img, color : str = "black", kernel_size : int | tuple = 128):
-                match color:
-                    case "black":
-                        i = img/255<0.5
-                    case "white":
-                        i = img/255>0.5
-                    case _:
-                        raise ValueError(f"color: {color} is not an option. Choose between white or black")
-                # bounding box is defined as (x, y, height, width)
-                i = i.astype(np.float32)# +0.001
-
-                # apply gaussian blur
-                blur = cv2.GaussianBlur(i, ksize=(33, 33), sigmaX=100, sigmaY=100)
-                ii   = i / blur
-                ii   = np.where(np.isnan(ii), 0, 1)
-                ii   = block_reduce(ii, block_size=kernel_size, func=np.min).astype(np.float32)
-                i    = cv2.resize(ii, dsize=(img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST_EXACT)
-                i   = (i / np.max(i))
-                
-                return i
-
-            @staticmethod
-            def enhance_text_for_ocr(img, n_times : int = 1):
-                for _ in range(n_times):
-                    # Step 1: Apply CLAHE to improve local contrast
-                    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
-                    img_clahe = clahe.apply(img)
-                    
-                    # Step 2: Apply Filter to reduce noise (speckle)
-                    blurred = cv2.GaussianBlur(img_clahe, (9, 9), 0)
-                    
-                    # Step 3: Threshold the image to make it binary
-                    _, binary_img = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-                    # Step 4: Apply 
-                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-                    cleaned_image = cv2.morphologyEx(binary_img, cv2.MORPH_OPEN, kernel)
-                    
-                    # Step 4: Apply dilation to enhance the text further
-                    kernel = np.ones((2, 2), np.uint8)
-                    dilated = cv2.dilate(cleaned_image, kernel, iterations=1)
-                    
-                    # Step 5: Sharpening to make edges clearer
-                    sharpen_kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
-                    sharpened = cv2.filter2D(dilated, -1, sharpen_kernel)
-                    img = sharpened
-
-                return sharpened
-
-            @staticmethod
-            def get_bounding_box(img, kernel_size : int | float = 256)->np.ndarray:
-                if isinstance(kernel_size, float):
-                    # get the ratios
-                    kernel_size=(int(img.shape[0]*kernel_size), int(img.shape[1]*kernel_size))
-                    ii = AppleTextVisualization.isolate_ic(img, kernel_size=kernel_size)
-                else:
-                    ii = AppleTextVisualization.isolate_ic(img, kernel_size=kernel_size)
-                # get bounding box
-
-                (x, y) = ii.shape
-
-                x_upper = 0
-                x_lower = x - 1
-                y_upper = 0
-                y_lower = y - 1
-
-                while x_upper < x:
-                    if np.any(ii[x_upper,:] > 0):
-                        break
-                    else:
-                        x_upper += 1
-                
-                while y_upper < y:
-                    if np.any(ii[:,y_upper] > 0):
-                        break
-                    else:
-                        y_upper += 1
-
-                while x_lower > 0:
-                    if np.any(ii[x_lower,:] > 0):
-                        break
-                    else:
-                        x_lower -= 1
-
-                while y_lower > 0:
-                    if np.any(ii[:,y_lower] > 0):
-                        break
-                else:
-                    y_lower -= 1
-
-                bbox = [x_upper, y_upper, x_lower - x_upper + 1, y_lower - y_upper + 1]
-                return bbox
-            
         
         if self.active_commands['-apple-ocr']:
-            if ocr_mode == 0:
-                image_np = np.array(image).mean(axis=-1).astype(np.uint8)
-                dataframe, _ = AppleTextVisualization.Image_To_Text(~image_np, rounds=2, minimum_horizontal_size=2048)
-            else:
-                ocr_instance = AppleOCR(image=image)
-                try:
-                    dataframe    = ocr_instance.recognize()
-                except:
-                    dataframe    = None
+            from apple_ocr import OCR as AppleOCR
+            from TextEnhance import TextEnhancement
+            ocr_instance = AppleOCR(image=TextEnhancement(image.convert('L'), min_height=1024))
+            try:
+                dataframe    = ocr_instance.recognize()
+            except:
+                dataframe    = None
 
             if not (dataframe is None):
                 return dataframe['Content']
