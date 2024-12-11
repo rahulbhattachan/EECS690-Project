@@ -54,9 +54,10 @@ def TextEnhancement(image, min_height):
 
     results = np.zeros_like(image)
     for i in range(0, nlabels-1):
-        if areas[i] >= 600:
+        if areas[i] >= 300:
             results[labels == i + 1] = 255
 
+    #image = cv2.GaussianBlur(image, ksize=(21, 21), sigmaX=33, sigmaY=33)
     image = Image.fromarray(results)
     return image
 

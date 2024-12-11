@@ -136,6 +136,10 @@ class Detector:
         if self.active_commands['-apple-ocr']:
             from apple_ocr.ocr import OCR as AppleOCR
 
+            new_height = 2048
+            new_width  = int(image.width/image.height * new_height)
+            image = image.resize((new_width, new_height))
+
             if self.active_commands['-text-debug-mode']:
                 plt.imshow(image)
                 plt.show()
@@ -191,7 +195,7 @@ class Detector:
             client = OpenAI(
                 api_key=api_key,  # This is the default and can be omitted
             )
-            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text. If there is no text, return nothing"
+            prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text in image. If there is no text in image, return 'NOTEXT''"
 
             if self.active_commands['-text-debug-mode']:
                 plt.imshow(image)
@@ -215,7 +219,9 @@ class Detector:
                 ],
             )
 
-            text = response.choices[0].message.content
+            text : str = response.choices[0].message.content
+            if text.find('NOTEXT') != -1:
+                return []
             text = text.split()
             return text
         return []
@@ -303,13 +309,11 @@ class Detector:
            self.active_commands['-chat-gpt']  or \
            self.active_commands['-llama-vision']:
             text = self.runa_ocr(cropped, ocr_mode=0)
-            print(text)
             return text
 
         # apply text recognition here
         text = text_recognition_easy_ocr(cropped, path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
 
-        print(text)
         return text
 
     def viewer(self, overlay : Image.Image, path : str, text : str | list)->None:
@@ -368,6 +372,28 @@ class Detector:
         if len(self.command_tree) == 0: # default behavior if no commands are given
             self.active_commands['-show'] = True
 
+    def __text_cleanup(self, text : str | list | tuple):
+        t = ""
+        if isinstance(text, list) or isinstance(text, tuple):
+            for c in text:
+                t += c
+            text = t
+
+        # cleanup,
+        text = text.replace(" ", "")
+        text = text.replace(".", "")
+        text = text.replace("'", "")
+        text = text.replace("/", "")
+        text = text.replace("^", "")
+        text = text.replace("+", "")
+        text = text.replace("Ь", "6")
+        
+        def remove_non_ascii(text):
+            return ''.join(char for char in text if ord(char) < 128)
+
+        text = remove_non_ascii(text)
+        return text
+
     def execute(self, path : str):
         t0 = time()
         self.parser()
@@ -378,6 +404,8 @@ class Detector:
         image = Image.open(path)
         overlay = self.__bb_core(image)
         text    = self.__text_core(image, path)
+        text    = self.__text_cleanup(text)
+
         t1 = time()
         print(f'### detector.py: It took {t1 - t0} seconds to execute!')
 
