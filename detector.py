@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from TextEnhance import TextEnhancement
 from TextRecognition import text_recognition
-#from TextRecognition_Ollama import text_recognition, text_recognition_easy_ocr
 from time import time
 
 # default paremeters
