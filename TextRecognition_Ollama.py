@@ -7,18 +7,11 @@ import numpy as np
 from sklearn.cluster import KMeans
 import matplotlib.colors as mc
 import colorsys
-import sys
-import cv2
-import os
-import re
 from TextEnhance import TextEnhancement
 
-def text_recognition(img : Image.Image, path : str, debug : bool = False, breakpoint : bool = False):
-    from ollama import chat
-    from ollama import ChatResponse
-    from io import BytesIO
-    import base64
-    prompt = "You are an OCR agent. Return ONLY text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
+def text_recognition_easy_ocr(img : Image.Image, path : str, debug : bool = False, breakpoint : bool = False):
+    import easyocr
+    reader = easyocr.Reader(['en']) # this needs to run only once to load the model into memory
 
     if debug:
         plt.imshow(img)
@@ -26,6 +19,7 @@ def text_recognition(img : Image.Image, path : str, debug : bool = False, breakp
         img.save('debug_output_1.png')
     #img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
     img = TextEnhancement(img.convert('L'), min_height=1024)
+
     if debug:
         plt.imshow(img)
         plt.show()
@@ -33,6 +27,41 @@ def text_recognition(img : Image.Image, path : str, debug : bool = False, breakp
         if breakpoint:
             raise ValueError("Break point!!!")
 
+
+    result = reader.readtext(np.array(img), detail=0)
+    return result
+
+
+def text_recognition(img : Image.Image, path : str, debug : bool = False, breakpoint : bool = False):
+    from ollama import chat
+    from ollama import ChatResponse
+    from io import BytesIO
+    import base64
+    prompt = "Act as an OCR assistant. Analyze the provided image and "\
+             "recognize all visible text in the image as accurately as possible."\
+             " Immediately after analysis, output the results in JSON format enclosed "\
+             " within <result> </result> tags. Only output in JSON format. For example: "\
+             " <result><text>'image_text'</text></result>, where 'image_text' is the text "\
+             " from the image."
+
+    if debug:
+        plt.imshow(img)
+        plt.show()
+        img.save('debug_output_1.png')
+    #img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
+    img = TextEnhancement(img.convert('L'), min_height=1024)
+
+    aspect_ratio = img.width / img.height
+    new_width = int(256 * aspect_ratio)
+    img = img.resize((new_width, 256))
+
+    if debug:
+        plt.imshow(img)
+        plt.show()
+        img.save('debug_output_2.png')
+        if breakpoint:
+            raise ValueError("Break point!!!")
+        
     img_type = "JPEG"
     iii = BytesIO()
     img.save(iii, format=img_type)
@@ -47,8 +76,7 @@ def text_recognition(img : Image.Image, path : str, debug : bool = False, breakp
     ])
     # or access fields directly from the response object
     text = response.message.content
-    if text.find('NOTEXT') != -1:
-        return []
+    text = text_extraction(text)
 
     return text
 

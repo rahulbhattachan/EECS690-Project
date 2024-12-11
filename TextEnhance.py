@@ -31,25 +31,33 @@ def TextEnhancement(image, min_height):
     image = ensure_minimum_height(image, min_height)
     image = np.array(image)
 
-    #image = cv2.medianBlur(image,5)
+    blur = cv2.GaussianBlur(image, ksize=(0, 0), sigmaX=33, sigmaY=33)
+    image = cv2.divide(image, blur, scale=255)
 
-    _, image = cv2.threshold(image, 71, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     # Apply adaptive thresholding to enhance text visibility
     #image = cv2.adaptiveThreshold(
     #    image,
     #    255,
     #    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
     #    cv2.THRESH_BINARY,
-    #    131,
+    #    251,
     #    5,
     #)
 
     # Define a kernel for morphological operations
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
     image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
 
-    image = Image.fromarray(image)
+    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(image, None, None, None, 8)
+    areas = stats[1:,cv2.CC_STAT_AREA]
+
+    results = np.zeros_like(image)
+    for i in range(0, nlabels-1):
+        if areas[i] >= 600:
+            results[labels == i + 1] = 255
+
+    image = Image.fromarray(results)
     return image
 
 
