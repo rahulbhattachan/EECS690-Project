@@ -23,11 +23,14 @@ def text_recognition(img : Image.Image, path : str, debug : bool = False):
     if debug:
         plt.imshow(img)
         plt.show()
+        img.save('debug_output_1.png')
     #img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
-    img = TextEnhancement(img, rounds=6)
+    img = TextEnhancement(img.convert('L'), min_height=1024)
     if debug:
         plt.imshow(img)
         plt.show()
+        img.save('debug_output_2.png')
+        raise ValueError("Break point!!!")
 
     img_type = "JPEG"
     iii = BytesIO()
