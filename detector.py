@@ -76,11 +76,13 @@ commands = [
     Commands("-overlay-package", 1),
     Commands("-overlay-text", 1),
     Commands("-apple-ocr", 0),
+    Commands("-enhance", 0),
     Commands("-chat-gpt", 0),
     Commands("-llama-vision", 0),
     Commands("-mode-1", 0),
     Commands("-model-n", 1),
-    Commands("-text-debug-mode", 0)
+    Commands("-text-debug-mode", 0),
+    Commands("-break-points", 0)
 ]
 
 def is_a_command(txt)->bool:
@@ -112,11 +114,13 @@ class Detector:
             '-overlay-package'  : 'c5',
             '-overlay-text'     : None,
             '-apple-ocr'        : False,
+            '-enhance'          : False,
             '-chat-gpt'         : False,
             '-llama-vision'     : False,
             '-mode-1'           : False,
             '-model-n'          : None,
             '-text-debug-mode'  : False,
+            '-break-points'     : False,
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
@@ -124,11 +128,21 @@ class Detector:
         from skimage.measure import block_reduce
         import base64
         from io import BytesIO
+        from TextEnhance import TextEnhancement
+
+        image = image.convert('L') if not self.active_commands['-enhance'] else \
+        TextEnhancement(image.convert('L'), min_height=1024)
         
         if self.active_commands['-apple-ocr']:
-            from apple_ocr import OCR as AppleOCR
-            from TextEnhance import TextEnhancement
-            ocr_instance = AppleOCR(image=TextEnhancement(image.convert('L'), min_height=1024))
+            from apple_ocr.ocr import OCR as AppleOCR
+
+            if self.active_commands['-text-debug-mode']:
+                plt.imshow(image)
+                plt.show()
+                if self.active_commands['-break-points']:
+                    raise ValueError("Break point")
+
+            ocr_instance = AppleOCR(image=image)
             try:
                 dataframe    = ocr_instance.recognize()
             except:
@@ -137,7 +151,7 @@ class Detector:
             if not (dataframe is None):
                 return dataframe['Content']
             else:
-                return None
+                return []
             
         img_type = "JPEG"
         iii = BytesIO()
@@ -148,6 +162,12 @@ class Detector:
             from ollama import chat
             from ollama import ChatResponse
             prompt = "You are an OCR agent. Return ONLY text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
+
+            if self.active_commands['-text-debug-mode']:
+                plt.imshow(image)
+                plt.show()
+                if self.active_commands['-break-points']:
+                    raise ValueError("Break point")
 
             response: ChatResponse = chat(model='llama3.2-vision', messages=[
             {
@@ -167,10 +187,17 @@ class Detector:
             from openai import OpenAI
 
             api_key = os.environ.get("OPENAI_API_KEY")
+            #print(api_key)
             client = OpenAI(
                 api_key=api_key,  # This is the default and can be omitted
             )
             prompt = "Read all text on the image. Do not use code or OCR, use vision. Return only text. If there is no text, return nothing"
+
+            if self.active_commands['-text-debug-mode']:
+                plt.imshow(image)
+                plt.show()
+                if self.active_commands['-break-points']:
+                    raise ValueError("Break point")
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -280,7 +307,7 @@ class Detector:
             return text
 
         # apply text recognition here
-        text = text_recognition(cropped, path, debug=self.active_commands['-text-debug-mode'])
+        text = text_recognition(cropped, path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
 
         print(text)
         return text

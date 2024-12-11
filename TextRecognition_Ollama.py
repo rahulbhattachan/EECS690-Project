@@ -13,7 +13,7 @@ import os
 import re
 from TextEnhance import TextEnhancement
 
-def text_recognition(img : Image.Image, path : str, debug : bool = False):
+def text_recognition(img : Image.Image, path : str, debug : bool = False, breakpoint : bool = False):
     from ollama import chat
     from ollama import ChatResponse
     from io import BytesIO
@@ -30,7 +30,8 @@ def text_recognition(img : Image.Image, path : str, debug : bool = False):
         plt.imshow(img)
         plt.show()
         img.save('debug_output_2.png')
-        raise ValueError("Break point!!!")
+        if breakpoint:
+            raise ValueError("Break point!!!")
 
     img_type = "JPEG"
     iii = BytesIO()

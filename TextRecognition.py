@@ -10,7 +10,7 @@ import ast
 # Implement Text Recognition interface here. detector.py will call this #
 # function to recognize text                                            #
 #########################################################################
-def text_recognition(image : Image.Image, path : str, debug : bool = False)->list | str:
+def text_recognition(image : Image.Image, path : str, debug : bool = False, breakpoint : bool = False)->list | str:
 
     """
         Args:
