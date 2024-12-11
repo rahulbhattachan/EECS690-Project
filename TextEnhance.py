@@ -35,16 +35,7 @@ def TextEnhancement(image, min_height):
     image = cv2.divide(image, blur, scale=255)
 
     _, image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # Apply adaptive thresholding to enhance text visibility
-    #image = cv2.adaptiveThreshold(
-    #    image,
-    #    255,
-    #    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #    cv2.THRESH_BINARY,
-    #    251,
-    #    5,
-    #)
-
+    
     # Define a kernel for morphological operations
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
     image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
