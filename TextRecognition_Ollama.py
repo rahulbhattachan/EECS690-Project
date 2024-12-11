@@ -11,15 +11,23 @@ import sys
 import cv2
 import os
 import re
+from TextEnhance import TextEnhancement
 
-def text_recognition(img : Image.Image, path : str):
+def text_recognition(img : Image.Image, path : str, debug : bool = False):
     from ollama import chat
     from ollama import ChatResponse
     from io import BytesIO
     import base64
     prompt = "You are an OCR agent. Return ONLY text in the image as a comma-seperated list. If there is no text, return the string 'NOTEXT'."
 
-    img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
+    if debug:
+        plt.imshow(img)
+        plt.show()
+    #img = adjust_and_apply_dominant_and_rare_colors(img, amount=0.3, num_colors=2, darken_fraction=0.3, photo_name="")
+    img = TextEnhancement(img, rounds=6)
+    if debug:
+        plt.imshow(img)
+        plt.show()
 
     img_type = "JPEG"
     iii = BytesIO()

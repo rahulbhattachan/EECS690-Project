@@ -79,7 +79,8 @@ commands = [
     Commands("-chat-gpt", 0),
     Commands("-llama-vision", 0),
     Commands("-mode-1", 0),
-    Commands("-model-n", 1)
+    Commands("-model-n", 1),
+    Commands("-text-debug-mode", 0)
 ]
 
 def is_a_command(txt)->bool:
@@ -114,7 +115,8 @@ class Detector:
             '-chat-gpt'         : False,
             '-llama-vision'     : False,
             '-mode-1'           : False,
-            '-model-n'          : None
+            '-model-n'          : None,
+            '-text-debug-mode'  : False,
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
@@ -402,7 +404,7 @@ class Detector:
             return text
 
         # apply text recognition here
-        text = text_recognition(image, path)
+        text = text_recognition(cropped, path, debug=self.active_commands['-text-debug-mode'])
 
         print(text)
         return text
