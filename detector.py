@@ -6,7 +6,7 @@ from PackageExtractor import PackageExtractor
 from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
-from TextEnhance import TextEnhancement
+from TextEnhance import TextEnhancement, text_recognition_forced
 from TextRecognition import text_recognition
 from time import time
 
@@ -82,7 +82,9 @@ commands = [
     Commands("-mode-1", 0),
     Commands("-model-n", 1),
     Commands("-text-debug-mode", 0),
-    Commands("-break-points", 0)
+    Commands("-break-points", 0),
+    Commands("-force-apple-ocr", 0),
+    Commands("-no-adjustment", 0)
 ]
 
 def is_a_command(txt)->bool:
@@ -121,6 +123,8 @@ class Detector:
             '-model-n'          : None,
             '-text-debug-mode'  : False,
             '-break-points'     : False,
+            '-force-apple-ocr'  : False,
+            '-no-adjustment'    : False,
         }
 
     def runa_ocr(self, image : Image.Image, ocr_mode : int = 0)->list:
@@ -315,13 +319,18 @@ class Detector:
         # OLD PATH `PATH` SHOULD ONLY BE USED FOR REFERENCE IF NECESSARY
         new_path = './temp/output.png'
         if self.active_commands['-enhance']:
-            enhance_cropped = TextEnhancement(cropped, 1024)
-            enhance_cropped.save(new_path)
+            cropped = cropped.convert('L')
+            cropped = TextEnhancement(cropped, 1024)
+            cropped.save(new_path)
         else:
+            cropped = cropped.convert('L')
             cropped.save(new_path)
 
         # apply text recognition here
-        text = text_recognition(cropped, new_path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
+        if not self.active_commands['-force-apple-ocr']:
+            text = text_recognition(cropped, new_path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'])
+        else:
+            text = text_recognition_forced(cropped, new_path, debug=self.active_commands['-text-debug-mode'], breakpoint=self.active_commands['-break-points'], no_adjustment=self.active_commands['-no-adjustment'])
 
         return text
 

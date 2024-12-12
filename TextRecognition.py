@@ -6,14 +6,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 import subprocess
 import ast
-from dotenv import load_dotenv
 
 #########################################################################
 # Implement Text Recognition interface here. detector.py will call this #
 # function to recognize text                                            #
 #########################################################################
 def text_recognition(image : Image.Image, path : str, debug : bool = False, breakpoint : bool = False)->list | str:
-
+    from dotenv import load_dotenv
     """
         Args:
             image (Image.Image): A PIL image that is cropped using PackageExtractor.
