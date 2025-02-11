@@ -420,9 +420,9 @@ class Detector:
             self.active_commands['-model'] = f'./783-Pin-Detection/runs/detect/train{self.active_commands["-model-n"]}/weights/best.pt'
 
         image = Image.open(path)
-        overlay = self.__bb_core(image)
-        text    = self.__text_core(image, path)
-        text    = self.__text_cleanup(text)
+        overlay = self.__bb_core(image)         # runs YOLO model
+        text    = self.__text_core(image, path) # runs OCR model
+        text    = self.__text_cleanup(text)     # applies further text cleanup
 
         t1 = time()
         print(f'### detector.py: It took {t1 - t0} seconds to execute!')
